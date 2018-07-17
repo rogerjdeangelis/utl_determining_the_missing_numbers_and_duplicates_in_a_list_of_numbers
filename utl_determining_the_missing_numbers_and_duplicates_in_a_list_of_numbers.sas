@@ -5,6 +5,11 @@ Same result in WPS and SAS if you move the DOSUBL outside the datastep.
 
 I tried a HASH, see end of message
 
+Nice HASh solution on end by
+Bartosz Jablonski
+Bartosz Jablonski's profile photo
+yabwon@gmail.com
+
 see github
 https://tinyurl.com/y86bpfwz
 https://github.com/rogerjdeangelis/utl_determining_the_missing_number_and_duplicates_in_a_list_of_numbers
@@ -216,5 +221,83 @@ ERROR: Unknown method VALUES for DATASTEP.HASH at line 157 column 36.
 ERROR: DATA STEP Component Object failure.  Aborted during the EXECUTION phase.
 162 !     quit;
 NOTE: The SAS System stopped processing this step because of errors.
+
+
+
+
+
+*____             _
+| __ )  __ _ _ __| |_
+|  _ \ / _` | '__| __|
+| |_) | (_| | |  | |_
+|____/ \__,_|_|   \__|
+
+;
+
+/*the code*/
+data have;
+input number;
+cards;
+22
+19
+17
+14
+15
+12
+10
+16
+17
+22
+11
+15
+20
+;
+run;
+
+data want;
+
+length number 8 reason $ 10; keep number reason /* count */ ; /* <- if you need to see number od duplicates */
+declare hash h(ordered: "a");
+_rc_ = h.definekey("number");
+_rc_ = h.definedata("count"); /* it can be replaced with suminc */
+_rc_ = h.definedone();
+_rc_ = h.clear();
+
+do until(eof);
+    set have end = eof;
+
+    _MIN_ = _MIN_ <> -number;
+    _MAX_ = _MAX_ <> number;
+
+    if h.find() ^= 0 then do; count = 1; _rc_ = h.add(); end;
+                     else do; count = count + 1; _rc_ = h.replace(); end;
+end;
+
+put _all_;
+number = .;
+reason = "";
+
+do number = -_MIN_ to _MAX_ by 1;
+    if h.find() = 0 then do; if count > 1 then do; reason = 'double'; output; end; end;
+                    else do; reason = 'missing'; output; end;
+    count = .;
+end;
+
+stop;
+run;
+proc print;
+run;
+
+/* the output
+ Obs    number    reason
+
+  1       13      missing
+  2       15      double
+  3       17      double
+  4       18      missing
+  5       21      missing
+  6       22      double
+*/
+
 
 
